@@ -1,2 +1,3 @@
 [alias]
 xtask = "run --package xtask --"
+cross = "run --target armv7-unknown-linux-gnueabihf --bin gtm"
