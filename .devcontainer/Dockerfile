@@ -1,8 +1,15 @@
 FROM rust:1.67
 
+
 RUN \
     apt-get update && \
-    apt-get install -y build-essential gcc-arm-linux-gnueabihf zsh
+    apt-get install -y build-essential gcc-arm-linux-gnueabihf zsh locales
+
+RUN locale-gen en_US.UTF-8  
+
+ENV LANG en_US.UTF-8  
+ENV LANGUAGE en_US:en  
+ENV LC_ALL en_US.UTF-8  
 
 RUN \
     chsh -s $(which zsh) && \
@@ -17,4 +24,4 @@ RUN \
 
 RUN \
     cargo install cargo-binstall && \
-    cargo binstall -y cargo-watch
+    cargo binstall -y cargo-watch cargo-feature
