@@ -18,3 +18,7 @@ rpassword = "7"
 
 russh = "0.36"
 russh-keys = "0.24"
+futures = "0.3"
+watchexec = "2"
+miette = "5.5.0"
+async-priority-channel = "0.1"

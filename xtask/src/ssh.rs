@@ -1,8 +1,12 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use log::info;
-use russh::client::Handler;
+
+use russh::{
+    client::{Handle, Handler},
+    Disconnect,
+};
+
 use russh_keys::key::PublicKey;
 
 #[derive(Default)]
@@ -12,7 +16,7 @@ struct Client {
 
 #[async_trait]
 impl Handler for Client {
-    type Error = anyhow::Error;
+    type Error = russh::Error;
 
     async fn check_server_key(
         self,
@@ -24,16 +28,31 @@ impl Handler for Client {
     }
 }
 
-pub async fn init_connect(host: &str, port: u16, user: &str, password: &str) -> anyhow::Result<()> {
-    let config = Arc::new(russh::client::Config::default());
-    let client = Client::default();
+pub struct Session {
+    session: Handle<Client>,
+}
 
-    let mut session = russh::client::connect(config, (host, port), client)
-        .await
-        .unwrap();
+impl Session {
+    pub async fn connect(
+        host: &str,
+        port: u16,
+        user: impl Into<String>,
+        password: &str,
+    ) -> anyhow::Result<Self> {
+        let config = Arc::new(russh::client::Config::default());
+        let client = Client::default();
 
-    session.authenticate_password(user, password).await.unwrap();
-    info!("Authenticated");
+        let mut session = russh::client::connect(config, (host, port), client).await?;
 
-    Ok(())
+        let _auth = session.authenticate_password(user, password).await?;
+
+        Ok(Self { session })
+    }
+
+    async fn close(&mut self) -> anyhow::Result<()> {
+        self.session
+            .disconnect(Disconnect::ByApplication, "", "English")
+            .await?;
+        Ok(())
+    }
 }

@@ -1,7 +1,9 @@
 use clap::{Parser, Subcommand};
-use log::info;
+use log::{error, info};
+
 use pretty_env_logger::env_logger::{Builder, Env};
-use xtask::ssh::init_connect;
+use tokio::select;
+use xtask::watch::watcher;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -28,6 +30,8 @@ enum Commands {
         #[arg(short, long)]
         password: Option<String>,
     },
+
+    Dev {},
 }
 
 #[tokio::main]
@@ -42,10 +46,10 @@ async fn main() -> anyhow::Result<()> {
             port,
             user,
             password,
-        }) => sshetup(host, port, user, password),
+        }) => sshetup(host, port, user, password).await,
+        Some(Commands::Dev {}) => dev().await,
         None => todo!(),
     }
-    .await
 }
 
 async fn sshetup(
@@ -60,7 +64,29 @@ async fn sshetup(
         rpassword::prompt_password(format!("password for{}@{}: ", user, host)).unwrap()
     });
 
-    let conn = init_connect(&host, port, &user, &password).await;
+    Ok(())
+}
+
+async fn dev() -> anyhow::Result<()> {
+    info!("Dev");
+
+    let (wkd, mut errors, events) = watcher(vec!["gap-the-mind-rmk"]).unwrap();
+
+    loop {
+        select! {
+            _ = tokio::signal::ctrl_c() => {
+                info!("ctrl-c");
+                break;
+            }
+            Ok((event, priority)) = events.recv() => {
+                info!("event ({priority:?}): {event:?}");
+            }
+            Some(error) = errors.recv() => {
+                error!("error: {error}");
+            }
+
+        }
+    }
 
     Ok(())
 }
